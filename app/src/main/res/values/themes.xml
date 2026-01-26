@@ -1,0 +1,4 @@
+<resources>
+
+    <style name="Theme.EmberTV" parent="android:Theme.DeviceDefault.NoActionBar" />
+</resources>
