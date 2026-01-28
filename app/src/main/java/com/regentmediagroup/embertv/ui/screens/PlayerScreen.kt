@@ -13,6 +13,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
+// REMOVED BAD IMPORT: import androidx.compose.ui.input.key.nativeKeyEvent
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
@@ -36,15 +40,15 @@ fun PlayerScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
-
-    // Define the Prefs file name
     val PREFS_NAME = "EmberPlaybackState"
 
-    // 1. Interceptor Workaround (Kept from previous step)
+    // We need to capture the View to send remote clicks to it
+    var playerView: PlayerView? by remember { mutableStateOf(null) }
+
+    // --- INTERCEPTOR (For DRM Workaround) ---
     val manifestInterceptor = Interceptor { chain ->
         val request = chain.request()
         val response = chain.proceed(request)
-
         if (request.url.toString().endsWith(".m3u8")) {
             try {
                 val originalBody = response.body?.string() ?: ""
@@ -55,7 +59,6 @@ fun PlayerScreen(
                 val newBody = fixedBody.toResponseBody("application/vnd.apple.mpegurl".toMediaType())
                 return@Interceptor response.newBuilder().body(newBody).build()
             } catch (e: Exception) {
-                Log.e("EmberInterceptor", "Failed to patch manifest", e)
                 return@Interceptor response
             }
         }
@@ -63,15 +66,12 @@ fun PlayerScreen(
     }
 
     val okHttpClient = remember {
-        OkHttpClient.Builder()
-            .addInterceptor(manifestInterceptor)
-            .build()
+        OkHttpClient.Builder().addInterceptor(manifestInterceptor).build()
     }
 
     val exoPlayer = remember {
         val dataSourceFactory = OkHttpDataSource.Factory(okHttpClient)
         val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
-
         ExoPlayer.Builder(context)
             .setMediaSourceFactory(mediaSourceFactory)
             .build()
@@ -85,55 +85,44 @@ fun PlayerScreen(
             }
     }
 
-    // 2. Logic to Load and Play Media
+    // Load & Resume Logic
     LaunchedEffect(videoUrl) {
         val mediaItem = MediaItem.Builder()
             .setUri(videoUrl)
             .setMimeType(MimeTypes.APPLICATION_M3U8)
             .build()
 
-        // --- RESUME LOGIC STARTS HERE ---
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val savedPosition = prefs.getLong(videoUrl, 0L) // Retrieve saved time using URL as key
+        val savedPosition = prefs.getLong(videoUrl, 0L)
 
         exoPlayer.setMediaItem(mediaItem)
-
-        // If we have a saved position (and it's not the very start), seek to it
         if (savedPosition > 0L) {
             exoPlayer.seekTo(savedPosition)
             Toast.makeText(context, "Resuming playback...", Toast.LENGTH_SHORT).show()
         }
-        // --- RESUME LOGIC ENDS HERE ---
-
         exoPlayer.prepare()
     }
 
-    // Helper function to save progress
     fun saveProgress() {
         val currentPos = exoPlayer.currentPosition
         val duration = exoPlayer.duration
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-
-        // If video ended (or is very close to end), reset to 0
         if (exoPlayer.playbackState == Player.STATE_ENDED || (duration > 0 && currentPos > duration - 10000)) {
             prefs.edit().remove(videoUrl).apply()
         } else {
-            // Otherwise, save the exact milliseconds
             prefs.edit().putLong(videoUrl, currentPos).apply()
         }
     }
 
-    // 3. Handle Back Button (Save before exit)
     BackHandler {
-        saveProgress() // <--- Save
+        saveProgress()
         exoPlayer.release()
         onBack()
     }
 
-    // 4. Handle Lifecycle/App Closing (Save before exit)
     DisposableEffect(Unit) {
         onDispose {
-            saveProgress() // <--- Save
+            saveProgress()
             exoPlayer.release()
         }
     }
@@ -153,9 +142,26 @@ fun PlayerScreen(
                     )
                     useController = true
                     keepScreenOn = true
+                    isFocusable = true
+
+                    // Capture the view reference so we can send keys to it later
+                    playerView = this
                 }
             },
-            modifier = Modifier.fillMaxSize()
+            update = { view ->
+                // Ensure focus remains on the player view
+                view.requestFocus()
+                playerView = view
+            },
+            modifier = Modifier
+                .fillMaxSize()
+                .onKeyEvent { event ->
+                    // Route the remote control keys (Play/Pause/Rewind) directly to the Android View
+                    if (event.type == KeyEventType.KeyDown) {
+                        return@onKeyEvent playerView?.dispatchKeyEvent(event.nativeKeyEvent) ?: false
+                    }
+                    false
+                }
         )
     }
 }

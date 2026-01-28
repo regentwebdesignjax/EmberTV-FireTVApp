@@ -74,7 +74,7 @@ fun MyRentalsScreen(
                 painter = painterResource(id = R.drawable.ember_tv_logo),
                 contentDescription = "Logo",
                 modifier = Modifier
-                    .height(60.dp)
+                    .height(54.dp)
                     .align(Alignment.CenterStart),
                 contentScale = ContentScale.Fit
             )

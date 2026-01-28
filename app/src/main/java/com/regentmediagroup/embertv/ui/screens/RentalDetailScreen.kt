@@ -110,8 +110,8 @@ fun RentalDetailScreen(
                 ) {
                     Text(
                         text = "Watch Now",
-                        style = EmberTheme.bodySemibold(22),
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+                        style = EmberTheme.bodySemibold(20),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
                     )
                 }
             }
