@@ -13,8 +13,8 @@ android {
         applicationId = "com.regentmediagroup.embertv"
         minSdk = 24
         targetSdk = 36
-        versionCode = 2
-        versionName = "1.1"
+        versionCode = 4
+        versionName = "3.0"
 
     }
 
@@ -56,9 +56,12 @@ dependencies {
     implementation("androidx.tv:tv-material:1.0.0")
 
     // --- NETWORKING ---
-    implementation("com.squareup.retrofit2:retrofit:2.9.0")
-    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.google.code.gson:gson:2.11.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
     implementation("io.coil-kt:coil-compose:2.7.0")
+
+    // --- QR CODE (activation sign-in) ---
+    implementation("com.google.zxing:core:3.5.3")
 
     // --- DEBUGGING ---
     debugImplementation("androidx.compose.ui:ui-tooling")
@@ -73,5 +76,4 @@ dependencies {
 
     // --- OKHTTP ---
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
-    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
 }
