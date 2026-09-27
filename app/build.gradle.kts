@@ -60,6 +60,9 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
     implementation("io.coil-kt:coil-compose:2.7.0")
 
+    // --- QR CODE (activation sign-in) ---
+    implementation("com.google.zxing:core:3.5.3")
+
     // --- DEBUGGING ---
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
