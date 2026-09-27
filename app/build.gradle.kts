@@ -13,8 +13,8 @@ android {
         applicationId = "com.regentmediagroup.embertv"
         minSdk = 24
         targetSdk = 36
-        versionCode = 4
-        versionName = "3.0"
+        versionCode = 5
+        versionName = "3.0.1"
 
     }
 
@@ -59,9 +59,6 @@ dependencies {
     implementation("com.google.code.gson:gson:2.11.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
     implementation("io.coil-kt:coil-compose:2.7.0")
-
-    // --- QR CODE (activation sign-in) ---
-    implementation("com.google.zxing:core:3.5.3")
 
     // --- DEBUGGING ---
     debugImplementation("androidx.compose.ui:ui-tooling")
