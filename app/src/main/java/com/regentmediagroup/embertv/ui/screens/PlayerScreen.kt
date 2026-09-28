@@ -48,6 +48,25 @@ import okhttp3.ResponseBody.Companion.toResponseBody
 /** How often to save the resume point while playing. */
 private const val HEARTBEAT_MILLIS = 30_000L
 
+/** Shown when this device can't decode the film's video, so retrying won't help. */
+private const val UNSUPPORTED_FORMAT_MESSAGE =
+    "This film can't play on this device. Please try another device, or contact embertv@regentmediagroup.com."
+
+/**
+ * The device has no working decoder for the stream it was given, e.g. a
+ * 10-bit HEVC encode on hardware that only decodes 8-bit. The player already
+ * prefers a version the device can decode when the stream offers one; this
+ * only changes what the viewer is told when none of them can play.
+ */
+private fun isUnsupportedFormat(error: PlaybackException): Boolean = when (error.errorCode) {
+    PlaybackException.ERROR_CODE_DECODER_INIT_FAILED,
+    PlaybackException.ERROR_CODE_DECODER_QUERY_FAILED,
+    PlaybackException.ERROR_CODE_DECODING_FAILED,
+    PlaybackException.ERROR_CODE_DECODING_FORMAT_EXCEEDS_CAPABILITIES,
+    PlaybackException.ERROR_CODE_DECODING_FORMAT_UNSUPPORTED -> true
+    else -> false
+}
+
 /**
  * Plays a rental. Asks the server for a fresh signed stream URL (it checks the
  * rental), then reports the position every 30 seconds, on pause and on close
@@ -203,7 +222,11 @@ private fun HlsPlayer(
 
             override fun onPlayerError(error: PlaybackException) {
                 Log.e("EmberPlayer", "Playback error: ${error.errorCodeName}", error)
-                playbackError = "Playback stopped. Please try again."
+                playbackError = if (isUnsupportedFormat(error)) {
+                    UNSUPPORTED_FORMAT_MESSAGE
+                } else {
+                    "Playback stopped. Please try again."
+                }
             }
         }
         exoPlayer.addListener(listener)
