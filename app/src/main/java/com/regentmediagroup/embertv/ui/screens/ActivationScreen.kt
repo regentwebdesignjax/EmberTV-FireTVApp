@@ -1,6 +1,5 @@
 package com.regentmediagroup.embertv.ui.screens
 
-import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -11,7 +10,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -27,21 +25,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Button
 import androidx.tv.material3.ButtonDefaults
 import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.Text
-import com.google.zxing.BarcodeFormat
-import com.google.zxing.EncodeHintType
-import com.google.zxing.qrcode.QRCodeWriter
 import com.regentmediagroup.embertv.R
 import com.regentmediagroup.embertv.data.ActivationPoll
 import com.regentmediagroup.embertv.data.DeviceCodeResponse
@@ -53,16 +45,19 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 
 /**
- * Sign in with an activation code: the TV shows a short code (and a QR code
- * of the activation link), the viewer approves it on their phone or computer,
- * and the TV polls until it receives a session. A new code is fetched when
- * one expires.
+ * Sign in with an activation code: the TV shows a short code, the viewer
+ * approves it on their phone or computer, and the TV polls until it receives
+ * a session. A new code is fetched when one expires.
+ *
+ * No QR code on Fire TV: Amazon's review ruled that scanning into the
+ * website lets customers create an account outside Amazon IAP, and asked
+ * for it to be removed. The typed address and code are accepted. The Apple
+ * TV and Roku apps keep their QR codes.
  */
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 fun ActivationScreen(onSignedIn: () -> Unit) {
     var code by remember { mutableStateOf<DeviceCodeResponse?>(null) }
-    var qr by remember { mutableStateOf<ImageBitmap?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var attempt by remember { mutableIntStateOf(0) }
     val retryFocus = remember { FocusRequester() }
@@ -73,10 +68,6 @@ fun ActivationScreen(onSignedIn: () -> Unit) {
             while (true) {
                 val current = EmberApiClient.startActivation()
                 code = current
-                qr = qrBitmap(
-                    current.verificationUriComplete
-                        ?: "${EmberConfig.API_BASE_URL}activate?code=${current.userCode}"
-                )
                 val expiresAt = System.currentTimeMillis() + (current.expiresIn ?: 600) * 1000L
                 var interval = (current.interval ?: 5).coerceAtLeast(1)
                 var restart = false
@@ -103,7 +94,6 @@ fun ActivationScreen(onSignedIn: () -> Unit) {
             throw e
         } catch (e: Exception) {
             code = null
-            qr = null
             error = e.message ?: "Something went wrong. Please try again in a moment."
         }
     }
@@ -120,7 +110,6 @@ fun ActivationScreen(onSignedIn: () -> Unit) {
         contentAlignment = Alignment.Center
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            // --- Left: instructions and the code ---
             Column(modifier = Modifier.width(520.dp)) {
                 Image(
                     painter = painterResource(id = R.drawable.ember_tv_logo),
@@ -199,31 +188,6 @@ fun ActivationScreen(onSignedIn: () -> Unit) {
                 }
             }
 
-            // --- Right: QR code of the activation link ---
-            val image = qr
-            if (image != null && error == null) {
-                Spacer(modifier = Modifier.width(64.dp))
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Box(
-                        modifier = Modifier
-                            .background(Color.White, RoundedCornerShape(20.dp))
-                            .padding(16.dp)
-                    ) {
-                        Image(
-                            bitmap = image,
-                            contentDescription = "QR code to sign in",
-                            modifier = Modifier.size(220.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "Or scan with your phone",
-                        style = EmberTheme.bodyFont(16),
-                        color = EmberTheme.TextSecondary,
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
         }
     }
 }
@@ -240,25 +204,4 @@ private fun Step(number: Int, text: String) {
         )
         Text(text = text, style = EmberTheme.bodyFont(18))
     }
-}
-
-/** Black-on-white QR code of [text], [size] pixels square. */
-private fun qrBitmap(text: String, size: Int = 512): ImageBitmap {
-    val matrix = QRCodeWriter().encode(
-        text,
-        BarcodeFormat.QR_CODE,
-        size,
-        size,
-        mapOf(EncodeHintType.MARGIN to 1)
-    )
-    val pixels = IntArray(size * size)
-    for (y in 0 until size) {
-        for (x in 0 until size) {
-            pixels[y * size + x] =
-                if (matrix.get(x, y)) android.graphics.Color.BLACK else android.graphics.Color.WHITE
-        }
-    }
-    val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-    bitmap.setPixels(pixels, 0, size, 0, 0, size, size)
-    return bitmap.asImageBitmap()
 }
