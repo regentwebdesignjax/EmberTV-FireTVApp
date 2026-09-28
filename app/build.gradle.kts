@@ -13,8 +13,8 @@ android {
         applicationId = "com.regentmediagroup.embertv"
         minSdk = 24
         targetSdk = 36
-        versionCode = 5
-        versionName = "3.0.1"
+        versionCode = 6
+        versionName = "3.0.2"
 
     }
 
