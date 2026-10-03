@@ -16,6 +16,8 @@ android {
         versionCode = 6
         versionName = "3.0.2"
 
+        // True only in the "staging" build type (see EmberConfig).
+        buildConfigField("boolean", "STAGING", "false")
     }
 
     buildTypes {
@@ -26,6 +28,17 @@ android {
                 "proguard-rules.pro"
             )
         }
+        // Points at the staging site and Supabase project instead of
+        // production. A separate app (".staging" ID, "Ember TV Staging") so it
+        // installs next to the store app; debug-signed so Android Studio can
+        // install it on a Fire TV. Never upload it to the Amazon Appstore.
+        create("staging") {
+            initWith(getByName("release"))
+            applicationIdSuffix = ".staging"
+            versionNameSuffix = "-staging"
+            signingConfig = signingConfigs.getByName("debug")
+            buildConfigField("boolean", "STAGING", "true")
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -33,6 +46,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

@@ -6,9 +6,16 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import androidx.tv.material3.Text
 import com.regentmediagroup.embertv.data.EmberApiClient
+import com.regentmediagroup.embertv.data.EmberConfig
 import com.regentmediagroup.embertv.data.Rental
 import com.regentmediagroup.embertv.ui.screens.ActivationScreen
 import com.regentmediagroup.embertv.ui.screens.MyRentalsScreen
@@ -80,7 +87,25 @@ class MainActivity : ComponentActivity() {
                         }
                     )
                 }
+
+                // Every screen but the player, so staging is never mistaken for the store app.
+                if (EmberConfig.IS_STAGING && !(signedIn && screen == Screen.Player)) {
+                    StagingBadge(Modifier.align(Alignment.TopEnd))
+                }
             }
         }
     }
+}
+
+@Composable
+private fun StagingBadge(modifier: Modifier = Modifier) {
+    Text(
+        text = "STAGING",
+        style = EmberTheme.bodySemibold(18),
+        color = Color.Black,
+        modifier = modifier
+            .padding(top = 24.dp, end = 48.dp)
+            .background(Color(0xFFFFD60A), RoundedCornerShape(50))
+            .padding(horizontal = 16.dp, vertical = 6.dp)
+    )
 }
